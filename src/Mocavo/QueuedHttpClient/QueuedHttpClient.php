@@ -7,43 +7,44 @@ use \Guzzle\Service\Client as HttpClient;
 
 class QueuedHttpClient {
 
-    public static function get($url, $payload = null)
+    public static function get($url, $payload = null, $headers = null)
     {
-        QueuedHttpClient::enqueue($url, 'GET', $payload);
+        QueuedHttpClient::enqueue($url, 'GET', $headers, $payload);
     }
 
-    public static function post($url, $payload = null)
+    public static function post($url, $payload = null, $headers = null)
     {
-        QueuedHttpClient::enqueue($url, 'POST', $payload);
+        QueuedHttpClient::enqueue($url, 'POST', $headers, $payload);
     }
 
-    public static function put($url, $payload = null)
+    public static function put($url, $payload = null, $headers = null)
     {
-        QueuedHttpClient::enqueue($url, 'PUT', $payload);
+        QueuedHttpClient::enqueue($url, 'PUT', $headers, $payload);
     }
 
-    public static function patch($url, $payload)
+    public static function patch($url, $payload, $headers = null)
     {
-        QueuedHttpClient::enqueue($url, 'PATCH', $payload);
+        QueuedHttpClient::enqueue($url, 'PATCH', $headers, $payload);
     }
 
-    public static function update($url, $payload)
+    public static function update($url, $payload, $headers = null)
     {
-        QueuedHttpClient::enqueue($url, 'UPDATE', $payload);
+        QueuedHttpClient::enqueue($url, 'UPDATE', $headers, $payload);
     }
 
-    public static function delete($url, $payload = null)
+    public static function delete($url, $payload = null, $headers = null)
     {
-        QueuedHttpClient::enqueue($url, 'DELETE', $payload);
+        QueuedHttpClient::enqueue($url, 'DELETE', $headers, $payload);
     }
 
 
-    public static function enqueue($url, $method, $payload)
+    public static function enqueue($url, $method, $headers, $payload)
     {
         $callback_data = [
             'callback_url' => $url,
             'callback_method' => $method,
-            'callback_payload_base64' => base64_encode(serialize($payload)),
+            'callback_headers' => base64_encode(json_encode($headers)),
+            'callback_payload_base64' => base64_encode(json_encode($payload)),
             'callback_timestamp' => time()
         ];
 
@@ -56,7 +57,8 @@ class QueuedHttpClient {
     {
         $callback_url = $data['callback_url'];
         $method =  strtoupper($data['callback_method']);
-        $payload = unserialize(base64_decode($data['callback_payload_base64']));
+        $headers = json_decode(base64_decode($data['callback_headers']));
+        $payload = json_decode(base64_decode($data['callback_payload_base64']));
 
 
         if(empty($callback_url)) {
@@ -67,17 +69,17 @@ class QueuedHttpClient {
         $client = new HttpClient();
 
         if($method == 'GET') {
-            $request = $client->get($callback_url);
+            $request = $client->get($callback_url, $headers);
         } elseif($method == 'POST') {
-            $request = $client->post($callback_url, array(), $payload);
+            $request = $client->post($callback_url, $headers, $payload);
         } elseif ($method == 'PUT') {
-            $request = $client->put($callback_url, array(), $payload);
+            $request = $client->put($callback_url, $headers, $payload);
         } elseif ($method == 'DELETE') {
-            $request = $client->delete($callback_url);
+            $request = $client->delete($callback_url, $headers);
         } elseif ($method == 'UPDATE') {
-            $request = $client->update($callback_url);
+            $request = $client->update($callback_url, $headers);
         } elseif ($method == 'PATCH') {
-            $request = $client->patch($callback_url);
+            $request = $client->patch($callback_url, $headers);
         } else {
             QueuedHttpClient::logFailedCallback($job, $data, ['success' => false, 'message' => 'Unsupported method: '.$method], 'hard');
             return FALSE;
