@@ -1,5 +1,5 @@
 {
-    "name": "brucewu16899/queued-http-client",
+    "name": "mocavo/queued-http-client",
     "type": "library",
     "description": "Laravel package to queued up HTTP calls for later delivery",
     "keywords": ["laravel","guzzle","http"],
